@@ -1,0 +1,52 @@
+﻿<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="./css/style.css">
+    <link href="https://cdn.jsdelivr.net/gh/oathanrex/font-awesome-pro@main/fontawesome-pro-6.5.2-web/css/all.min.css"
+        rel="stylesheet">
+    <title>Квиз</title>
+</head>
+<body>
+    <main class="page">
+        <section class="quiz-app" id="quiz">
+            <section class="quiz-intro" id="quizIntro">
+                <p class="quiz-intro-kicker">Квиз от GlebWeb</p>
+                <h1>Подберем сайт под вашу задачу</h1>
+                <p class="quiz-intro-description">
+                    Ответьте на 4 коротких вопроса, и ИИ сформирует понятную рекомендацию: какой тип сайта вам подойдет и как лучше его оформить.
+                </p>
+                <button class="quiz-button primary quiz-intro-button" id="startQuizBtn" type="button">Пройти квиз</button>
+            </section>
+
+            <section class="quiz-card" aria-live="polite">
+                <div class="quiz-head">
+                    <div>
+                        <p class="quiz-kicker">Квиз от GlebWeb</p>
+                        <h1>Подберем подходящий сайт</h1>
+                    </div>
+                    <div class="quiz-progress" id="progressText">1 / 4</div>
+                </div>
+
+                <div class="quiz-progress-bar" aria-hidden="true">
+                    <span id="progressFill"></span>
+                </div>
+
+                <div id="quizRoot"></div>
+            </section>
+        </section>
+    </main>
+    <script src="./js/main.js"></script>
+    
+</body>
+</html>
+
+<!-- Красиво оформить ответ:
+     1. Отдельный краткий вывод
+     2. Подробное объяснение
+     3. Рекомендации по дальнейшим действиям
+     4. Примеры реализации
+     5. Заключение
+     6. Отправка заявки вместе с результатами квиза
+     -->
