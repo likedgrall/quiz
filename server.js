@@ -24,7 +24,7 @@ if (fs.existsSync(envPath)) {
     }
 }
 
-const PORT = Number(process.env.API_PROXY_PORT || 8787);
+const PORT = Number(process.env.PORT || process.env.API_PROXY_PORT || 8787);
 const AI_API_URL = (process.env.AI_API_URL || "https://router.huggingface.co/v1").replace(/\/$/, "");
 const AI_API_KEY = process.env.AI_API_KEY;
 const AI_MODEL = process.env.AI_MODEL || "meta-llama/Llama-3.1-8B-Instruct";
@@ -103,7 +103,11 @@ const server = http.createServer(async (req, res) => {
     }
 
     if (req.method === "GET" && requestUrl.pathname === "/api/health") {
-        sendJson(res, 200, { ok: true });
+        sendJson(res, 200, {
+            ok: true,
+            hasApiKey: Boolean(AI_API_KEY),
+            model: AI_MODEL
+        });
         return;
     }
 

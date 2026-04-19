@@ -36,10 +36,15 @@
 Строго используй только русский язык во всех полях ответа.
 `.trim();
 
-const ANALYZE_ENDPOINT =
-    window.location.protocol === "file:"
-        ? "http://localhost:8787/api/analyze"
-        : "/api/analyze";
+const API_BASE_URL = normalizeApiBaseUrl(window.APP_CONFIG?.API_BASE_URL || "");
+const DIRECT_HF_API_KEY = toCleanText(window.APP_CONFIG?.HF_API_KEY || "").trim();
+const ACTIVE_MODEL = toCleanText(window.APP_CONFIG?.AI_MODEL || "meta-llama/Llama-3.1-8B-Instruct").trim();
+const DIRECT_HF_URL = "https://router.huggingface.co/v1";
+const ANALYZE_ENDPOINT = API_BASE_URL
+    ? `${API_BASE_URL}/api/analyze`
+    : window.location.protocol === "file:"
+      ? "http://localhost:8787/api/analyze"
+      : "/api/analyze";
 const IS_GITHUB_PAGES = /github\.io$/i.test(window.location.hostname);
 
 const MIN_SITE_TYPE_WORDS = 18;
@@ -365,8 +370,12 @@ async function getStructuredAIResult(baseMessages) {
 async function requestAIContent(messages) {
     const cleanMessages = sanitizeMessagesForLLM(messages);
 
-    if (IS_GITHUB_PAGES && ANALYZE_ENDPOINT.startsWith("/")) {
-        throw new Error("На GitHub Pages недоступен сервер /api/analyze. Нужен отдельный backend (proxy) для запроса к ИИ.");
+    if (DIRECT_HF_API_KEY) {
+        return requestAIContentDirect(cleanMessages);
+    }
+
+    if (IS_GITHUB_PAGES && !API_BASE_URL) {
+        throw new Error("На GitHub Pages нужен либо backend URL в js/config.js (API_BASE_URL), либо прямой ключ HF_API_KEY в js/config.js.");
     }
 
     const response = await fetch(ANALYZE_ENDPOINT, {
@@ -375,7 +384,7 @@ async function requestAIContent(messages) {
             "Content-Type": "application/json"
         },
         body: JSON.stringify({
-            model: "meta-llama/Llama-3.1-8B-Instruct",
+            model: ACTIVE_MODEL,
             messages: cleanMessages
         })
     });
@@ -397,6 +406,45 @@ async function requestAIContent(messages) {
     }
 
     return data.content;
+}
+
+async function requestAIContentDirect(messages) {
+    const response = await fetch(`${DIRECT_HF_URL}/chat/completions`, {
+        method: "POST",
+        headers: {
+            Authorization: `Bearer ${DIRECT_HF_API_KEY}`,
+            "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+            model: ACTIVE_MODEL,
+            messages,
+            max_tokens: 500,
+            temperature: 0.6
+        })
+    });
+
+    const raw = await response.text();
+    let data = null;
+    try {
+        data = raw ? JSON.parse(raw) : {};
+    } catch (_) {
+        throw new Error("Hugging Face вернул невалидный JSON. Проверь ключ и модель.");
+    }
+
+    if (!response.ok) {
+        throw new Error(data?.error?.message || data?.error || "Ошибка запроса к Hugging Face");
+    }
+
+    return toCleanText(data?.choices?.[0]?.message?.content || "");
+}
+
+function normalizeApiBaseUrl(value) {
+    const text = toCleanText(value).trim();
+    if (!text) {
+        return "";
+    }
+
+    return text.replace(/\/+$/, "");
 }
 
 function buildLLMPayload() {
