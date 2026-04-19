@@ -40,6 +40,7 @@ const ANALYZE_ENDPOINT =
     window.location.protocol === "file:"
         ? "http://localhost:8787/api/analyze"
         : "/api/analyze";
+const IS_GITHUB_PAGES = /github\.io$/i.test(window.location.hostname);
 
 const MIN_SITE_TYPE_WORDS = 18;
 const MIN_SITE_TYPE_CHARS = 110;
@@ -364,6 +365,10 @@ async function getStructuredAIResult(baseMessages) {
 async function requestAIContent(messages) {
     const cleanMessages = sanitizeMessagesForLLM(messages);
 
+    if (IS_GITHUB_PAGES && ANALYZE_ENDPOINT.startsWith("/")) {
+        throw new Error("На GitHub Pages недоступен сервер /api/analyze. Нужен отдельный backend (proxy) для запроса к ИИ.");
+    }
+
     const response = await fetch(ANALYZE_ENDPOINT, {
         method: "POST",
         headers: {
@@ -375,7 +380,18 @@ async function requestAIContent(messages) {
         })
     });
 
-    const data = await response.json();
+    const raw = await response.text();
+    let data = null;
+    try {
+        data = raw ? JSON.parse(raw) : {};
+    } catch (_) {
+        const htmlLike = /^\s*</.test(raw);
+        if (htmlLike) {
+            throw new Error("Сервер вернул HTML вместо JSON. Проверь endpoint /api/analyze и работу backend-сервера.");
+        }
+        throw new Error("Сервер вернул невалидный JSON. Проверь формат ответа backend.");
+    }
+
     if (!response.ok) {
         throw new Error(data.error || "Не удалось получить ответ ИИ");
     }
