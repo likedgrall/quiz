@@ -375,7 +375,7 @@ async function requestAIContent(messages) {
     }
 
     if (IS_GITHUB_PAGES && !API_BASE_URL) {
-        throw new Error("На GitHub Pages нужен либо backend URL в js/config.js (API_BASE_URL), либо прямой ключ HF_API_KEY в js/config.js.");
+        throw new Error("На GitHub Pages нужен либо API_BASE_URL в js/config.js, либо сгенерированный на этапе сборки HF_API_KEY из .env.");
     }
 
     const response = await fetch(ANALYZE_ENDPOINT, {
@@ -432,7 +432,19 @@ async function requestAIContentDirect(messages) {
     }
 
     if (!response.ok) {
-        throw new Error(data?.error?.message || data?.error || "Ошибка запроса к Hugging Face");
+        const rawError = toCleanText(data?.error?.message || data?.error || "");
+        if (response.status === 401 || response.status === 403) {
+            throw new Error(
+                "Hugging Face не принял токен: проверь FRONTEND_HF_API_KEY в .env, затем заново выполни npm run build:config."
+            );
+        }
+        const normalizedError = rawError.toLowerCase();
+        if (normalizedError.includes("token") && normalizedError.includes("expired")) {
+            throw new Error(
+                "Токен Hugging Face истек. Обнови FRONTEND_HF_API_KEY в .env и пересобери js/config.js."
+            );
+        }
+        throw new Error(rawError || "Ошибка запроса к Hugging Face");
     }
 
     return toCleanText(data?.choices?.[0]?.message?.content || "");

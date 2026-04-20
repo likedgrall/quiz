@@ -147,6 +147,14 @@ const server = http.createServer(async (req, res) => {
             const data = await response.json();
 
             if (!response.ok) {
+                if (response.status === 401 || response.status === 403) {
+                    sendJson(res, response.status, {
+                        ok: false,
+                        error: "Hugging Face не принял токен. Проверь AI_API_KEY в .env.",
+                        raw: data
+                    });
+                    return;
+                }
                 sendJson(res, response.status, {
                     ok: false,
                     error: data?.error?.message || data?.error || "AI request failed",
